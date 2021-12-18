@@ -1,10 +1,11 @@
+import { isLabelWithInternallyDisabledControl } from '@testing-library/user-event/dist/utils';
 import React, {useState, useEffect} from 'react';
 import User from './User';
 
 let usersDb = [], usersNew = [], usersBeforeChecked = [];
-const ALLUSERS = "https://teston.website/Contacts/";
+const URI_ALLUSERS = "https://teston.website/Contacts/";
 const alphabetLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
-  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "OTHER"];
+  "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "OTHER", "ALL"];
 
 function App() {
   const [users, setUsers] = useState (null);
@@ -12,7 +13,7 @@ function App() {
   const [filteredUsers, setFilteredUsers] = useState([]);
   
   useEffect(() => {
-    fetch(ALLUSERS)
+    fetch(URI_ALLUSERS)
     .then(response => response.json())
     .then(data => handleData(data))
     .catch(err => console.log(err));
@@ -29,9 +30,11 @@ function App() {
   },[]);
 
   const filterUsers = letter => {
-    const filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter));
-    setClickedLetter(letter);   
-    if (letter === "OTHER") {
+    let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1);
+    setClickedLetter(letter);
+    if (letter == "ALL") {
+      filtered = [...users];
+    } else if (letter === "OTHER") {
       for (let i = 0; i < users.length; i++) {
         const firstLetter = users[i].surname.toUpperCase()[0];
         if (!alphabetLetters.includes(firstLetter)) {
@@ -94,7 +97,7 @@ function App() {
             else continue;
           }
           if (acceptEntries === true) {
-            let uri = ALLUSERS + usersBeforeChecked[i].id;
+            let uri = URI_ALLUSERS + usersBeforeChecked[i].id;
             fetch(uri,
              {
               method: "PUT",
@@ -138,13 +141,14 @@ function App() {
   const handleDeleteUser = (id) => {
     const newUsers = users.filter(user => user.id !== id);
     const newFilteredUsers = filteredUsers.filter(user => user.id !== id);
+    
     function successDelete (response) {
       if (response.status == 200 || response.status == 202) {
         setUsers(newUsers);
         setFilteredUsers(newFilteredUsers);
       }
     }
-    let uri = ALLUSERS + id;
+    let uri = URI_ALLUSERS + id;
     fetch(uri,
      {
       method: "DELETE"
