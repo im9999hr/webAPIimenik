@@ -1,9 +1,9 @@
-import { isLabelWithInternallyDisabledControl } from '@testing-library/user-event/dist/utils';
 import React, {useState, useEffect} from 'react';
 import User from './User';
+import NewUser from './NewUser';
 
 let usersDb = [], usersNew = [], usersBeforeChecked = [];
-const URI_ALLUSERS = "https://teston.website/Contacts/";
+const URI_USERS = "https://teston.website/Contacts/";
 const alphabetLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", 
   "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "OTHER", "ALL"];
 
@@ -13,7 +13,7 @@ function App() {
   const [filteredUsers, setFilteredUsers] = useState([]);
   
   useEffect(() => {
-    fetch(URI_ALLUSERS)
+    fetch(URI_USERS)
     .then(response => response.json())
     .then(data => handleData(data))
     .catch(err => console.log(err));
@@ -27,7 +27,7 @@ function App() {
       setUsers(usersNew);
       usersBeforeChecked = usersDb.map(obj => {return {...obj}}); // users that change only after 'check icon' clicked
     }
-  },[]);
+  }, []);
 
   const filterUsers = letter => {
     let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1);
@@ -64,7 +64,12 @@ function App() {
       usersBeforeChecked[i].name = data.name;
       usersBeforeChecked[i].surname = data.surname;
       usersBeforeChecked[i].mobile = data.mobile;
-    } 
+    };
+    const errorData = (error) => {
+      console.log ("error in handleIconChange");
+      console.log(error);
+    };
+     
     for (let i = 0; i < newUsers.length; i++) {
       if (newUsers[i].id === id) {
         newUsers[i].iconChange = !newUsers[i].iconChange; // change icon from 'check icon' to 'pencil icon' and vice versa
@@ -97,7 +102,7 @@ function App() {
             else continue;
           }
           if (acceptEntries === true) {
-            let uri = URI_ALLUSERS + usersBeforeChecked[i].id;
+            let uri = URI_USERS + usersBeforeChecked[i].id;
             fetch(uri,
              {
               method: "PUT",
@@ -112,8 +117,8 @@ function App() {
               })
               })
             .then(response => response.json())
-            .then(data => successData(data, i))
-            .catch(err => console.log(err)); 
+            .then(data => successData(data,i))
+            .catch(err => errorData(err));
           }
           else {
             newUsers[i].iconChange = !newUsers[i].iconChange; // doesn't allow change icon from 'check icon' to 'pencil icon' for empty input
@@ -138,6 +143,7 @@ function App() {
     }
     setUsers(newUsers);
   }
+
   const handleDeleteUser = (id) => {
     const newUsers = users.filter(user => user.id !== id);
     const newFilteredUsers = filteredUsers.filter(user => user.id !== id);
@@ -148,13 +154,53 @@ function App() {
         setFilteredUsers(newFilteredUsers);
       }
     }
-    let uri = URI_ALLUSERS + id;
+    let uri = URI_USERS + id;
     fetch(uri,
      {
       method: "DELETE"
       })
     .then((response) => successDelete(response))
     .catch(err => console.log(err)); 
+  }
+
+  const addNewUser = user => {
+    const newUsers = [...users];
+    const newFilteredUsers = [...filteredUsers];
+    
+    const successData = (data) => {
+      data["iconChange"] = true;
+      newUsers.push(data);
+      usersBeforeChecked.push(data);
+      setUsers(newUsers);
+      if ((data.surname.toUpperCase().startsWith(clickedLetter) && clickedLetter.length==1)
+          || (clickedLetter == "ALL")
+          || ((clickedLetter == "OTHER") && (!alphabetLetters.includes(data.surname.toUpperCase()[0])))) {
+        newFilteredUsers.push(data);
+        setFilteredUsers(newFilteredUsers);
+      } 
+    };
+    const errorData = (error) => {
+      console.log ("error in addNewUser");
+      console.log(error);
+    } 
+    let uri = URI_USERS;
+    fetch(uri,
+      {
+      method: "POST",
+      headers: {'Content-Type': 'application/json', 'charset': 'utf-8'},
+      body: JSON.stringify(
+      {
+        name: user.name.trimEnd(),
+        surname: user.surname.trimEnd(),
+        mobile: user.mobile.trimEnd(),
+        addressId: null,
+        address: null
+      })
+      })
+    .then(response => response.json())
+    .then(data => successData(data))
+    .catch(err => errorData(err));
+    
   }
 
   return (
@@ -165,6 +211,7 @@ function App() {
         onClick={() => filterUsers(letter)}>{letter}
       </button>
      )}
+     <NewUser addUser = {addNewUser} />
      {clickedLetter && filteredUsers.map((user) => (
         <User
           key={user.id}
