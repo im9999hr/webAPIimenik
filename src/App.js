@@ -8,9 +8,9 @@ const alphabetLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", 
   "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "OTHER", "ALL"];
 
 function App() {
-  const [users, setUsers] = useState (null);
-  const [clickedLetter, setClickedLetter] = useState("");
-  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [users, setUsers] = useState (null); //all users
+  const [clickedLetter, setClickedLetter] = useState(""); // text from last clicked button
+  const [filteredUsers, setFilteredUsers] = useState([]); // users which first letter starts with above text
   
   useEffect(() => {
     fetch(URI_USERS)
@@ -19,19 +19,20 @@ function App() {
     .catch(err => console.log(err));
 
     function handleData (data) {
-      usersDb = [...data]
+      usersDb = [...data];
       usersNew = usersDb.map(obj => {return {...obj}}); // users that change after every input change
       usersNew.forEach(element => {
       element["iconChange"] = true;
       });
-      setUsers(usersNew);
       usersBeforeChecked = usersDb.map(obj => {return {...obj}}); // users that change only after 'check icon' clicked
+      setUsers(usersNew);
     }
   }, []);
 
   const filterUsers = letter => {
-    let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1);
     setClickedLetter(letter);
+
+    let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1); // exclude "ALL" and "OTHER"
     if (letter == "ALL") {
       filtered = [...users];
     } else if (letter === "OTHER") {
@@ -48,112 +49,118 @@ function App() {
   const handleInputChange = (event, id, arg) => {
     const newUsers = [...users];
     let str = event.target.value.trimStart();
-    for (let i = 0; i < newUsers.length; i++) {
-      if (newUsers[i].id === id) {
-        newUsers[i][arg] = str;
-        break;
-      }
-    }
+    const user = newUsers.find (u => u.id === id);
+    user[arg] = str;
+    // isti efek kao find 
+    //for (let i = 0; i < newUsers.length; i++) {
+     // if (newUsers[i].id === id) {
+      //  newUsers[i][arg] = str;
+       // break;
+      //}
+    //}
     setUsers(newUsers);
   }
 
   const handleIconChange = (event,id) => {
     const arry = event.currentTarget.parentNode.children; // children of div element (input elements, but also other elements like buttons)
     const newUsers = [...users];
-    const successData = (data, i) => {
-      usersBeforeChecked[i].name = data.name;
-      usersBeforeChecked[i].surname = data.surname;
-      usersBeforeChecked[i].mobile = data.mobile;
+
+    const successData = (data) => {
+      oldUser.name = data.name;
+      oldUser.surname = data.surname;
+      oldUser.mobile = data.mobile;
     };
+
     const errorData = (error) => {
       console.log ("error in handleIconChange");
       console.log(error);
     };
-     
-    for (let i = 0; i < newUsers.length; i++) {
-      if (newUsers[i].id === id) {
-        newUsers[i].iconChange = !newUsers[i].iconChange; // change icon from 'check icon' to 'pencil icon' and vice versa
-        if (newUsers[i].iconChange === true) {
-          let inputCount=0;
-          let acceptEntries = true;
-          for (let index = 0; index < arry.length; index++) {
-            const element = arry[index];
-            if (element.nodeName === "INPUT") {
-              const str = element.value.trimEnd();
-              if (str.length === 0) {
-                acceptEntries = false;
-                break;
-              }
-              inputCount++;
-              switch (inputCount) {
-                case 1:
-                  newUsers[i].name = str;
-                  break;
-                case 2:
-                  newUsers[i].surname = str;
-                  break;
-                case 3:
-                  newUsers[i].mobile = str;
-                  break;
-                default:
-                  break;
-              }
+    
+    const user = newUsers.find (u => u.id === id);
+    const oldUser = usersBeforeChecked.find (u => u.id === id);
+    
+    if (user && oldUser) {
+      user.iconChange = !user.iconChange; // change icon from 'check icon' to 'pencil icon' and vice versa
+      if (user.iconChange === true) {
+        let inputCount=0;
+        let acceptEntries = true;
+        for (let index = 0; index < arry.length; index++) {
+          const element = arry[index];
+          if (element.nodeName === "INPUT") {
+            const str = element.value.trimEnd();
+            if (str.length === 0) {
+              acceptEntries = false;
+              break;
             }
-            else continue;
+            inputCount++;
+            switch (inputCount) {
+              case 1:
+                user.name = str;
+                break;
+              case 2:
+                user.surname = str;
+                break;
+              case 3:
+                user.mobile = str;
+                break;
+              default:
+                break;
+            }
           }
-          if (acceptEntries === true) {
-            let uri = URI_USERS + usersBeforeChecked[i].id;
-            fetch(uri,
-             {
-              method: "PUT",
-              headers: {'Content-Type': 'application/json', 'charset': 'utf-8'},
-              body: JSON.stringify(
-              {
-                name: newUsers[i].name,
-                surname: newUsers[i].surname,
-                mobile: newUsers[i].mobile,
-                addressId: null,
-                address: null
-              })
-              })
-            .then(response => response.json())
-            .then(data => successData(data,i))
-            .catch(err => errorData(err));
-          }
-          else {
-            newUsers[i].iconChange = !newUsers[i].iconChange; // doesn't allow change icon from 'check icon' to 'pencil icon' for empty input
-          }
-        } 
-        break;
-      }
+          else continue;
+        }
+        if (acceptEntries === true) {
+          let uri = URI_USERS + oldUser.id;
+          fetch(uri,
+            {
+            method: "PUT",
+            headers: {'Content-Type': 'application/json', 'charset': 'utf-8'},
+            body: JSON.stringify(
+            {
+              name: user.name,
+              surname: user.surname,
+              mobile: user.mobile,
+              addressId: null,
+              address: null
+            })
+            })
+          .then(response => response.json())
+          .then(data => successData(data))
+          .catch(err => errorData(err));
+        }
+        else {
+          user.iconChange = !user.iconChange; // doesn't allow change icon from 'check icon' to 'pencil icon' for empty input
+        }
+      } 
     }
+    
     setUsers(newUsers);
   }
 
   const revertState = id => {
     const newUsers = [...users];
-    for (let i = 0; i < newUsers.length; i++) {
-      if (newUsers[i].id === id) {
-        newUsers[i].iconChange = true;
-        newUsers[i].name = usersBeforeChecked[i].name;
-        newUsers[i].surname = usersBeforeChecked[i].surname;
-        newUsers[i].mobile = usersBeforeChecked[i].mobile;
-        break;
-      }
+    const user = newUsers.find (u => u.id === id);
+    const oldUser = usersBeforeChecked.find (u => u.id === id);
+    if (user && oldUser) {
+      user.iconChange = true;
+      user.name = oldUser.name;
+      user.surname = oldUser.surname;
+      user.mobile = oldUser.mobile;
+      setUsers(newUsers);
     }
-    setUsers(newUsers);
   }
 
   const handleDeleteUser = (id) => {
     const newUsers = users.filter(user => user.id !== id);
     const newFilteredUsers = filteredUsers.filter(user => user.id !== id);
-    
+
     function successDelete (response) {
       if (response.status == 200 || response.status == 202) {
         setUsers(newUsers);
         setFilteredUsers(newFilteredUsers);
       }
     }
+
     let uri = URI_USERS + id;
     fetch(uri,
      {
@@ -170,7 +177,8 @@ function App() {
     const successData = (data) => {
       data["iconChange"] = true;
       newUsers.push(data);
-      usersBeforeChecked.push(data);
+      const data1 = {...data}
+      usersBeforeChecked.push(data1);
       setUsers(newUsers);
       if ((data.surname.toUpperCase().startsWith(clickedLetter) && clickedLetter.length==1)
           || (clickedLetter == "ALL")
@@ -179,10 +187,12 @@ function App() {
         setFilteredUsers(newFilteredUsers);
       } 
     };
+
     const errorData = (error) => {
       console.log ("error in addNewUser");
       console.log(error);
     } 
+
     let uri = URI_USERS;
     fetch(uri,
       {
