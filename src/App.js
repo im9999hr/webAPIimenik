@@ -30,8 +30,6 @@ function App() {
   }, []);
 
   const filterUsers = letter => {
-    setClickedLetter(letter);
-
     let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1); // exclude "ALL" and "OTHER"
     if (letter == "ALL") {
       filtered = [...users];
@@ -51,6 +49,7 @@ function App() {
     let str = event.target.value.trimStart();
     const user = newUsers.find (u => u.id === id);
     user[arg] = str;
+
     // isti efek kao find 
     //for (let i = 0; i < newUsers.length; i++) {
      // if (newUsers[i].id === id) {
@@ -58,6 +57,7 @@ function App() {
        // break;
       //}
     //}
+
     setUsers(newUsers);
   }
 
@@ -69,16 +69,18 @@ function App() {
       oldUser.name = data.name;
       oldUser.surname = data.surname;
       oldUser.mobile = data.mobile;
+      filterUsers(clickedLetter);
     };
 
     const errorData = (error) => {
       console.log ("error in handleIconChange");
       console.log(error);
+      user.iconChange = !user.iconChange;
     };
     
     const user = newUsers.find (u => u.id === id);
     const oldUser = usersBeforeChecked.find (u => u.id === id);
-    
+
     if (user && oldUser) {
       user.iconChange = !user.iconChange; // change icon from 'check icon' to 'pencil icon' and vice versa
       if (user.iconChange === true) {
@@ -133,7 +135,6 @@ function App() {
         }
       } 
     }
-    
     setUsers(newUsers);
   }
 
@@ -147,6 +148,7 @@ function App() {
       user.surname = oldUser.surname;
       user.mobile = oldUser.mobile;
       setUsers(newUsers);
+      filterUsers(clickedLetter);
     }
   }
 
@@ -155,9 +157,11 @@ function App() {
     const newFilteredUsers = filteredUsers.filter(user => user.id !== id);
 
     function successDelete (response) {
-      if (response.status == 200 || response.status == 202) {
+      if (response.status >= 200 && response.status < 300) {
         setUsers(newUsers);
         setFilteredUsers(newFilteredUsers);
+      } else {
+        console.log("wrong response status while deleting user: " + response.status);
       }
     }
 
@@ -207,7 +211,13 @@ function App() {
         address: null
       })
       })
-    .then(response => response.json())
+    .then(response => {
+      const status = response.status;
+      if (status < 200 || status > 299) {
+        throw new Error("wrong response status: " + status);
+      }
+      return response.json();
+    })
     .then(data => successData(data))
     .catch(err => errorData(err));
     
@@ -218,7 +228,14 @@ function App() {
      {alphabetLetters.map(letter => 
       <button
         key={letter} 
-        onClick={() => filterUsers(letter)}>{letter}
+        onClick={
+          () => {
+          setClickedLetter(letter);
+          filterUsers(letter);
+          }
+        }
+      >
+      {letter}
       </button>
      )}
      <NewUser addUser = {addNewUser} />
