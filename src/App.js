@@ -29,6 +29,21 @@ function App() {
     }
   }, []);
 
+  const handleButtonClick = (event, letter) => {
+    setClickedLetter(letter);
+    filterUsers(letter);
+    const currentButtonColor = event.target.style.backgroundColor;
+    const newButtonColor = "rgba(116, 189, 128, 0.7)";
+    const allButtons = event.currentTarget.parentNode.children; // this is object, not array
+    const allButtonsArray = [...allButtons];
+    const previousClickedButton = allButtonsArray.find(b => b.style.backgroundColor === newButtonColor);
+    event.target.style.backgroundColor = newButtonColor;
+    if (previousClickedButton) {
+      previousClickedButton.style.backgroundColor = currentButtonColor;
+    }
+    
+    };
+
   const filterUsers = letter => {
     let filtered = users.filter(u => u.surname.toUpperCase().startsWith(letter) && letter.length==1); // exclude "ALL" and "OTHER"
     if (letter == "ALL") {
@@ -225,20 +240,18 @@ function App() {
 
   return (
     <div>
-     {alphabetLetters.map(letter => 
-      <button
-        key={letter} 
-        onClick={
-          () => {
-          setClickedLetter(letter);
-          filterUsers(letter);
-          }
-        }
-      >
-      {letter}
-      </button>
-     )}
-     <NewUser addUser = {addNewUser} />
+     <h2>I M E N I K</h2> <br/>
+     <NewUser addUser = {addNewUser} /> <br/>
+     <div>
+      {alphabetLetters.map(letter => 
+        <button
+          key={letter} 
+          onClick={(event) => handleButtonClick(event, letter)}
+        >
+        {letter}
+        </button>
+      )}
+     </div>
      {clickedLetter && filteredUsers.map((user) => (
         <User
           key={user.id}
