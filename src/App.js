@@ -34,7 +34,7 @@ function App() {
     filterUsers(letter);
     const currentButtonColor = event.target.style.backgroundColor;
     const newButtonColor = "rgba(116, 189, 128, 0.7)";
-    const allButtons = event.currentTarget.parentNode.children; // this is object, not array
+    const allButtons = event.currentTarget.parentNode.children; // collect all buttons, this is object, not array
     const allButtonsArray = [...allButtons];
     const previousClickedButton = allButtonsArray.find(b => b.style.backgroundColor === newButtonColor);
     event.target.style.backgroundColor = newButtonColor;
@@ -65,7 +65,7 @@ function App() {
     const user = newUsers.find (u => u.id === id);
     user[arg] = str;
 
-    // isti efek kao find 
+    // isti efekt kao find
     //for (let i = 0; i < newUsers.length; i++) {
      // if (newUsers[i].id === id) {
       //  newUsers[i][arg] = str;
